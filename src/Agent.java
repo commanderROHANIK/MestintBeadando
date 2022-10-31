@@ -1,13 +1,13 @@
 ///THE_REAL_CARLOS,h046759@stud.u-szeged.hu
-import java.util.Random;
+import java.util.*;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.stream.Collectors;
 
 import game.quoridor.MoveAction;
 import game.quoridor.QuoridorGame;
 import game.quoridor.QuoridorPlayer;
 import game.quoridor.WallAction;
+import game.quoridor.players.BlockRandomPlayer;
 import game.quoridor.players.DummyPlayer;
 import game.quoridor.utils.PlaceObject;
 import game.quoridor.utils.QuoridorAction;
@@ -21,7 +21,7 @@ public class Agent extends QuoridorPlayer {
     public Agent(int i, int j, int color, Random random) {
         super(i, j, color, random);
         this.players[color] = this;
-        this.players[1 - color] = new DummyPlayer((1 - color) * 8, j, 1 - color, (Random) null);
+        this.players[1 - color] = new BlockRandomPlayer((1 - color) * 8, j, 1 - color, (Random) null);
         this.numWalls = 0;
     }
 
@@ -53,16 +53,17 @@ public class Agent extends QuoridorPlayer {
 
 
     private QuoridorAction decideNextMove() {
-        if (this.numWalls < 10 && this.random.nextDouble() < 0.5) {
-            return putWall();
-        } else {
-            return move();
-        }
+        return getEnemy().i > 2 && getEnemy().i < 6 && this.numWalls < 10 ? putWall() : move();
     }
 
     private WallAction putWall() {
-        WallObject candidate;
-        for (candidate = null; !QuoridorGame.checkWall(candidate, this.walls, this.players); candidate = new WallObject(this.random.nextInt(8), this.random.nextInt(8), this.random.nextBoolean())) {
+        QuoridorPlayer enemy = getEnemy();
+        WallObject candidate = new WallObject(enemy.i + 2, enemy.j, true);
+
+        if (!QuoridorGame.checkWall(candidate, this.walls, this.players)) {
+            candidate = new WallObject(enemy.i, enemy.j + 3, false);
+            if (!QuoridorGame.checkWall(candidate, this.walls, this.players))
+                candidate = new WallObject(enemy.i, enemy.j - 3, false);
         }
 
         this.walls.add(candidate);
@@ -72,11 +73,18 @@ public class Agent extends QuoridorPlayer {
 
     private MoveAction move() {
         List<PlaceObject> steps = this.toPlace().getNeighbors(this.walls, this.players);
+
+        Optional<PlaceObject> stepForward = steps.stream()
+                .filter(step -> step.i < this.i)
+                .findFirst();
+
         PlaceObject step = (PlaceObject) steps.get(this.random.nextInt(steps.size()));
-        return new MoveAction(this.i, this.j, step.i, step.j);
+
+        return stepForward.map(placeObject -> new MoveAction(this.i, this.j, placeObject.i, placeObject.j))
+                .orElseGet(() -> new MoveAction(this.i, this.j, step.i, step.j));
     }
 
-    private class AlfaBeta {
-
+    private QuoridorPlayer getEnemy() {
+        return Arrays.stream(this.players).filter(player -> !(player instanceof Agent)).findFirst().get();
     }
 }
