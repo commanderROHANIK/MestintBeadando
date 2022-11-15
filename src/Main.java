@@ -8,7 +8,7 @@ public class Main {
         int rand_int1 = ThreadLocalRandom.current().nextInt();
         String szam = Integer.toString(rand_int1);
 
-        String[] args1 = {"0", "game.quoridor.QuoridorGame", szam, "5000", "game.quoridor.players.RandomPlayer", "Agent"};
+        String[] args1 = {"0", "game.quoridor.QuoridorGame", szam, "50000000", "game.quoridor.players.BlockRandomPlayer" ,"Agent"};
 
         try {
             Engine.main(args1);
